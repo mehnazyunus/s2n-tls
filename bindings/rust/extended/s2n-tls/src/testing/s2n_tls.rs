@@ -279,6 +279,21 @@ mod tests {
     }
 
     #[test]
+    fn security_policy_is_retrievable() -> Result<(), Error> {
+        let default_config = crate::config::Builder::new().build()?;
+        assert!(default_config.security_policy().is_none());
+
+        let policy = Policy::from_version("20240501")?;
+        let config = config_builder(&policy)?.build()?;
+        assert_eq!(
+            config.security_policy().map(|p| p.version()),
+            Some("20240501")
+        );
+
+        Ok(())
+    }
+
+    #[test]
     fn trust_location() -> Result<(), Error> {
         let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs"));
         let mut cert = pem_dir.to_path_buf();

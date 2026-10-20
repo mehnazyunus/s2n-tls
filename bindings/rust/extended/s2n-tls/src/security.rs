@@ -57,6 +57,16 @@ impl Policy {
         let context = Context::Owned(cstr);
         Ok(Self(context))
     }
+
+    /// Returns the version string that identifies this security policy.
+    ///
+    /// This is the value passed to [`Policy::from_version`], or the name of a
+    /// predefined policy such as [`DEFAULT_TLS13`] (`"default_tls13"`).
+    pub fn version(&self) -> &str {
+        self.as_cstr()
+            .to_str()
+            .expect("security policy versions are always valid UTF-8")
+    }
 }
 
 impl fmt::Debug for Policy {

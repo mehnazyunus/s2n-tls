@@ -61,6 +61,14 @@ impl Config {
         Builder::default()
     }
 
+    /// Returns the security policy set via [`Builder::set_security_policy`].
+    ///
+    /// Returns `None` if no security policy was set, in which case the s2n-tls
+    /// default security policy is in effect.
+    pub fn security_policy(&self) -> Option<&security::Policy> {
+        self.context().security_policy.as_ref()
+    }
+
     /// # Safety
     ///
     /// This config _MUST_ have been initialized with a [`Builder`].
@@ -236,6 +244,13 @@ impl Builder {
             s2n_config_set_cipher_preferences(self.as_mut_ptr(), policy.as_cstr().as_ptr())
                 .into_result()
         }?;
+        // s2n_config does not retain the policy version, so store it for retrieval.
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
+        context.security_policy = Some(policy.clone());
         Ok(self)
     }
 
@@ -1222,6 +1237,7 @@ pub(crate) struct Context {
     /// Storing the CertificateChains in this Vec ensures that reference counts
     /// behave as expected when stored in an s2n-tls config.
     application_owned_certs: Vec<CertificateChain<'static>>,
+    pub(crate) security_policy: Option<security::Policy>,
     pub(crate) client_hello_callback: Option<Box<dyn ClientHelloCallback>>,
     pub(crate) private_key_callback: Option<Box<dyn PrivateKeyCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
@@ -1250,6 +1266,7 @@ impl Default for Context {
         Self {
             refcount,
             application_owned_certs: Vec::new(),
+            security_policy: None,
             client_hello_callback: None,
             private_key_callback: None,
             verify_host_callback: None,
